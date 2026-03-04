@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Money Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+        
+        :root {
+            --primary: 134 76 61;
+        }
+        
+        .tail-container {
+            font-family: 'Inter', system_ui, sans-serif;
+        }
+        
+        .logo-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .progress-bar {
+            transition: width 800ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .card {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+        }
+
+        .expense-item {
+            transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        
+        .expense-item:hover {
+            background-color: #f8fafc;
+            transform: scale(1.02);
+        }
+
+        .toast {
+            animation: toastIn 300ms ease forwards;
+        }
+        
+        @keyframes toastIn {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .amount-input {
+            font-size: 2.25rem;
+            line-height: 1;
+        }
+
+        .number-ticker {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="tail-container bg-zinc-50 text-zinc-800">
+    <div class="flex flex-col h-screen max-h-screen overflow-hidden">
+        <!-- HEADER -->
+        <header class="bg-white border-b border-zinc-100 px-6 py-5 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-x-3">
+                <!-- Logo -->
+                <div class="w-9 h-9 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-inner">
+                    <i class="fa-solid fa-wallet text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="logo-font text-3xl font-semibold tracking-tighter text-emerald-700">moneyflow</h1>
+                    <p class="text-[10px] text-zinc-400 -mt-1 tracking-[0.5px]">PERSONAL</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-x-8">
+                <div class="hidden md:flex items-center bg-zinc-100 rounded-3xl px-5 py-1 text-sm">
+                    <div class="flex items-center gap-x-1.5 text-emerald-600">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <span id="current-date" class="font-medium"></span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-x-6">
+                    <!-- Bonus mini display -->
+                    <div onclick="adjustBonus()" 
+                         class="flex items-center gap-x-2 bg-white border border-zinc-200 hover:border-violet-300 transition-colors px-4 py-2 rounded-3xl cursor-pointer">
+                        <div class="text-xs font-medium text-zinc-500">BONUS</div>
+                        <div id="header-bonus" 
+                             class="font-semibold text-violet-600 number-ticker">₹30</div>
+                    </div>
+                    
+                    <div class="w-8 h-8 bg-zinc-100 hover:bg-zinc-200 transition-colors rounded-2xl flex items-center justify-center cursor-pointer relative">
+                        <i onclick="toggleNotifications()" class="fa-solid fa-bell text-zinc-500"></i>
+                        <div id="notif-dot" 
+                             class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-[9px] text-white rounded-full flex items-center justify-center font-medium">3</div>
+                    </div>
+                    
+                    <div class="flex items-center gap-x-2">
+                        <div class="w-8 h-8 bg-amber-200 rounded-2xl flex items-center justify-center text-amber-800 font-medium text-sm">SJ</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="flex flex-1 overflow-hidden">
+            <!-- MAIN CONTENT -->
+            <div class="flex-1 flex flex-col p-6 overflow-auto">
+                <!-- DAILY SUMMARY CARD -->
+                <div id="summary-card"
+                     class="card bg-white rounded-3xl shadow-xl p-8 mb-8 border border-zinc-100">
+                    <div class="flex justify-between">
+                        <!-- Left stats -->
+                        <div class="flex-1">
+                            <div class="flex items-baseline gap-x-3">
+                                <div id="spent-amount" 
+                                     class="text-6xl font-semibold tracking-tighter text-zinc-900 number-ticker">₹42</div>
+                                <div class="text-zinc-400 text-3xl font-light">/100</div>
+                            </div>
+                            <div class="flex items-center gap-x-2 mt-1">
+                                <div class="text-emerald-500 text-sm font-semibold flex items-center gap-x-1">
+                                    <i class="fa-solid fa-arrow-trend-down text-xs"></i>
+                                    <span>SPENT TODAY</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Progress -->
+                            <div class="mt-10 mb-2">
+                                <div class="h-3 bg-zinc-100 rounded-3xl overflow-hidden shadow-inner">
+                                    <div id="progress-fill" 
+                                         class="h-3 bg-gradient-to-r from-emerald-400 to-teal-500 progress-bar rounded-3xl shadow-sm"
+                                         style="width: 42%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between text-xs">
+                                <div class="flex items-center gap-x-2">
+                                    <div id="progress-text" class="font-mono text-emerald-500">42%</div>
+                                    <div class="h-px w-8 bg-zinc-200"></div>
+                                </div>
+                                <div onclick="simulateDayEnd()" 
+                                     class="text-zinc-400 hover:text-zinc-600 cursor-pointer flex items-center gap-x-1 text-[10px]">
+                                    <i class="fa-solid fa-rotate text-xs"></i>
+                                    <span>END DAY</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right metrics -->
+                        <div class="flex flex-col justify-between items-end w-52">
+                            <!-- Remaining -->
+                            <div class="text-right">
+                                <div class="uppercase text-[10px] tracking-widest font-medium text-teal-500">Remaining</div>
+                                <div id="remaining-amount" 
+                                     class="text-5xl font-semibold text-teal-600 number-ticker">₹58</div>
+                                <div id="remaining-label" class="text-xs text-teal-400">of daily limit</div>
+                            </div>
+                            
+                            <!-- Divider -->
+                            <div class="w-px h-8 bg-gradient-to-b from-transparent via-zinc-200 to-transparent my-auto"></div>
+                            
+                            <!-- Bonus -->
+                            <div onclick="adjustBonus()" class="text-right cursor-pointer group">
+                                <div class="flex items-center justify-end gap-x-2">
+                                    <div class="uppercase text-[10px] tracking-widest font-medium text-violet-500">Bonus</div>
+                                    <i class="fa-solid fa-circle-info text-[10px] text-violet-300 group-hover:text-violet-400"></i>
+                                </div>
+                                <div id="bonus-amount" 
+                                     class="text-5xl font-semibold text-violet-600 number-ticker">₹30</div>
+                                <div class="flex items-center justify-end gap-x-1 text-xs">
+                                    <span id="bonus-status" class="px-3 py-0.5 bg-violet-100 text-violet-600 rounded-3xl text-[10px]">carry forward</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Status indicator -->
+                    <div id="status-pill"
+                         class="mt-8 inline-flex items-center gap-x-2 bg-emerald-50 text-emerald-700 text-xs font-medium px-5 h-7 rounded-3xl">
+                        <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <span id="status-text">ON TRACK</span>
+                    </div>
+                </div>
+                
+                <!-- ADD EXPENSE CARD -->
+                <div class="bg-white rounded-3xl shadow p-6 mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="font-semibold text-lg flex items-center gap-x-2">
+                            <i class="fa-solid fa-plus text-emerald-500"></i>
+                            <span>New Expense</span>
+                        </div>
+                        <div class="text-xs px-4 py-2 bg-zinc-100 text-zinc-500 rounded-3xl flex items-center">
+                            <span class="font-mono">MAX</span>
+                            <span class="mx-2">•</span>
+                            <span class="font-semibold text-emerald-500">₹9999</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <!-- Amount input -->
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-zinc-400 mb-2 ml-1">AMOUNT (₹)</label>
+                            <div class="relative">
+                                <div class="absolute left-6 top-1/2 -translate-y-1/2 text-3xl text-zinc-300 font-light">₹</div>
+                                <input id="amount-input" 
+                                       onkeypress="if(event.key === 'Enter') addCustomExpense()"
+                                       type="number" 
+                                       maxlength="4"
+                                       placeholder="0"
+                                       class="amount-input w-full bg-zinc-50 border border-transparent focus:border-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-300 h-20 rounded-3xl pl-14 pr-6 text-5xl font-light placeholder-zinc-200">
+                            </div>
+                        </div>
+                        
+                        <!-- Note -->
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-zinc-400 mb-2 ml-1">NOTE</label>
+                            <input id="note-input" 
+                                   type="text" 
+                                   placeholder="Coffee, groceries..."
+                                   class="w-full h-20 bg-zinc-50 border border-transparent focus:border-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-300 rounded-3xl px-6 text-base">
+                        </div>
+                    </div>
+                    
+                    <!-- Quick amount buttons -->
+                    <div class="mt-7">
+                        <div class="text-xs font-medium text-zinc-400 mb-3 ml-1">QUICK ADD</div>
+                        <div class="grid grid-cols-4 gap-3">
+                            <button onclick="quickAdd(10)" 
+                                    class="quick-btn h-12 bg-white hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 transition-all active:scale-95 rounded-2xl text-lg font-medium flex items-center justify-center shadow-sm">
+                                ₹10
+                            </button>
+                            <button onclick="quickAdd(20)" 
+                                    class="quick-btn h-12 bg-white hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 transition-all active:scale-95 rounded-2xl text-lg font-medium flex items-center justify-center shadow-sm">
+                                ₹20
+                            </button>
+                            <button onclick="quickAdd(50)" 
+                                    class="quick-btn h-12 bg-white hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 transition-all active:scale-95 rounded-2xl text-lg font-medium flex items-center justify-center shadow-sm">
+                                ₹50
+                            </button>
+                            <button onclick="quickAdd(100)" 
+                                    class="quick-btn h-12 bg-white hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 transition-all active:scale-95 rounded-2xl text-lg font-medium flex items-center justify-center shadow-sm">
+                                ₹100
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button onclick="addCustomExpense()"
+                            class="mt-8 w-full h-16 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold text-xl rounded-3xl flex items-center justify-center active:scale-[0.97] transition-all shadow-inner">
+                        <i class="fa-solid fa-check mr-3"></i>
+                        <span>RECORD EXPENSE</span>
+                    </button>
+                </div>
+                
+                <!-- DAILY LOG -->
+                <div class="flex-1 flex flex-col bg-white rounded-3xl shadow overflow-hidden">
+                    <div class="px-8 pt-6 pb-4 border-b flex items-center justify-between bg-white">
+                        <div class="font-semibold flex items-center gap-x-3">
+                            <span>Today's Activity</span>
+                            <span id="log-count" 
+                                  class="bg-zinc-100 text-zinc-400 text-xs w-5 h-5 flex items-center justify-center rounded-full">3</span>
+                        </div>
+                        
+                        <div class="flex items-center text-xs font-medium text-zinc-400">
+                            <div class="flex items-center">
+                                <span id="total-spent-log" class="text-emerald-700 font-semibold">₹42</span>
+                            </div>
+                            <span class="mx-3 text-zinc-300">|</span>
+                            <span class="flex items-center gap-x-1">
+                                <i class="fa-solid fa-clock text-[10px]"></i>
+                                <span id="last-updated">just now</span>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Log list -->
+                    <div id="expense-list" 
+                         class="flex-1 p-3 overflow-auto space-y-1 custom-scroll">
+                        <!-- Populated by JS -->
+                    </div>
+                    
+                    <!-- Log footer -->
+                    <div class="px-6 py-4 bg-zinc-50 border-t text-xs flex items-center justify-between text-zinc-400">
+                        <div class="flex items-center gap-x-5">
+                            <div onclick="clearAllExpenses()" 
+                                 class="flex items-center gap-x-1 hover:text-red-400 cursor-pointer">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>CLEAR</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-emerald-500">
+                            <i class="fa-solid fa-shield-halved mr-2"></i>
+                            <span class="font-medium">SECURE</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RIGHT PANEL -->
+            <div class="w-80 bg-white border-l border-zinc-100 flex flex-col">
+                <!-- Mini header -->
+                <div class="h-14 border-b flex items-center px-6 text-sm font-semibold">
+                    ACTIVITY FEED
+                </div>
+                
+                <!-- Notifications list -->
+                <div id="activity-feed" 
+                     class="flex-1 p-5 overflow-auto space-y-6 custom-scroll text-sm">
+                    <!-- JS populated -->
+                </div>
+                
+                <!-- Footer hint -->
+                <div class="p-6 text-[10px] bg-zinc-50 border-t">
+                    <div class="rounded-3xl bg-white p-4 text-zinc-400 leading-tight text-center">
+                        <i class="fa-solid fa-lightbulb text-amber-400"></i>
+                        <div class="mt-3 text-xs">Pro tip: Spend under your limit to grow your bonus balance</div>
+                    </div>
+                </div>
+                
+                <!-- Fake progress ring -->
+                <div class="px-6 py-8 border-t flex justify-center">
+                    <div class="relative w-28 h-28">
+                        <!-- SVG circle -->
+                        <svg class="w-28 h-28 -rotate-12" viewBox="0 0 42 42">
+                            <circle cx="21" cy="21" r="15" fill="none" stroke="#f1f5f9" stroke-width="6"></circle>
+                            <circle id="circle-progress" 
+                                    cx="21" cy="21" r="15" 
+                                    fill="none" 
+                                    stroke="#10b981" 
+                                    stroke-width="6"
+                                    stroke-dasharray="94"
+                                    stroke-dashoffset="35"
+                                    stroke-linecap="round"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <div class="text-xs text-center leading-none">
+                                <div class="font-mono text-4xl text-zinc-700 font-light" id="mini-percent">42</div>
+                                <div class="text-[10px] text-zinc-400 -mt-1">USED</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-y-2"></div>
+    
+    <!-- MODAL FOR BONUS ADJUST -->
+    <div onclick="if(event.target.id === 'bonus-modal') this.style.display = 'none'" 
+         id="bonus-modal"
+         class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-[999]">
+        <div onclick="event.stopImmediatePropagation()" 
+             class="bg-white w-full max-w-xs rounded-3xl p-8">
+            <div class="text-center">
+                <div class="mx-auto w-12 h-12 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center mb-6">
+                    <i class="fa-solid fa-gem"></i>
+                </div>
+                <h3 class="font-semibold mb-1">Adjust Bonus Balance</h3>
+                <p class="text-xs text-zinc-500 mb-8">Current balance will be overwritten</p>
+                
+                <div class="flex border border-zinc-200 rounded-3xl px-6 py-6 items-center">
+                    <span class="text-4xl text-zinc-300">₹</span>
+                    <input id="modal-bonus-input" 
+                           type="number" 
+                           value="30"
+                           class="flex-1 text-center text-5xl font-light focus:outline-none">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mt-8">
+                    <button onclick="closeBonusModal()" 
+                            class="py-6 text-zinc-400 font-medium border border-zinc-200 rounded-3xl">CANCEL</button>
+                    <button onclick="saveBonus()" 
+                            class="py-6 bg-violet-600 text-white font-medium rounded-3xl">SAVE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tailwind script run
+        function initializeTailwind() {
+            // Already configured via CDN
+        }
+        
+        // State
+        let limit = 100
+        let spent = 42
+        let bonus = 30
+        let expenses = [
+            {
+                id: 1,
+                time: "09:41",
+                amount: 15,
+                note: "Metro ride"
+            },
+            {
+                id: 2,
+                time: "11:20",
+                amount: 12,
+                note: "Cold brew"
+            },
+            {
+                id: 3,
+                time: "13:05",
+                amount: 15,
+                note: ""
+            }
+        ]
+        
+        let notifications = [
+            {
+                icon: "✅",
+                message: "50% limit reached",
+                time: "2h ago"
+            },
+            {
+                icon: "⭐",
+                message: "Bonus +₹5 from yesterday",
+                time: "yesterday"
+            }
+        ]
+        
+        let milestones = {
+            50: false,
+            75: false,
+            90: false,
+            100: false
+        }
+        
+        // Render summary card
+        function renderSummary() {
+            // Spent
+            const spentEl = document.getElementById("spent-amount")
+            spentEl.textContent = `₹${spent}`
+            
+            // Remaining
+            let remaining = limit - spent
+            const remainingEl = document.getElementById("remaining-amount")
+            remainingEl.textContent = remaining >= 0 ? `₹${remaining}` : `₹${Math.abs(remaining)}`
+            remainingEl.className = remaining >= 0 
+                ? "text-5xl font-semibold text-teal-600 number-ticker" 
+                : "text-5xl font-semibold text-red-500 number-ticker"
+            
+            // Progress
+            let perc = Math.min(Math.max((spent / limit) * 100, 0), 150)
+            const progressFill = document.getElementById("progress-fill")
+            progressFill.style.width = `${Math.min(perc, 100)}%`
+            
+            // Dynamic color
+            if (perc > 100) {
+                progressFill.style.background = "linear-gradient(to right, #b91c1c, #991b1b)"
+            } else if (perc > 75) {
+                progressFill.style.background = "linear-gradient(to right, #f59e0b, #d97706)"
+            } else if (perc > 50) {
+                progressFill.style.background = "linear-gradient(to right, #eab308, #ca8a04)"
+            } else {
+                progressFill.style.background = "linear-gradient(to right, #10b981, #14b8a6)"
+            }
+            
+            // Progress text
+            document.getElementById("progress-text").textContent = `${Math.round(perc)}%`
+            
+            // Header bonus
+            document.getElementById("header-bonus").textContent = `₹${bonus}`
+            
+            // Mini circle
+            const offset = 94 - (Math.min(perc, 100) / 100) * 94
+            document.getElementById("circle-progress").setAttribute("stroke-dashoffset", offset)
+            document.getElementById("mini-percent").textContent = Math.round(Math.min(perc, 100))
+            
+            // Status text
+            const statusText = document.getElementById("status-text")
+            const statusPill = document.getElementById("status-pill")
+            
+            if (perc > 100) {
+                statusText.textContent = "OVER LIMIT"
+                statusPill.className = "mt-8 inline-flex items-center gap-x-2 bg-red-50 text-red-500 text-xs font-medium px-5 h-7 rounded-3xl"
+            } else if (perc > 75) {
+                statusText.textContent = "CAUTION"
+                statusPill.className = "mt-8 inline-flex items-center gap-x-2 bg-amber-50 text-amber-500 text-xs font-medium px-5 h-7 rounded-3xl"
+            } else {
+                statusText.textContent = "ON TRACK"
+                statusPill.className = "mt-8 inline-flex items-center gap-x-2 bg-emerald-50 text-emerald-700 text-xs font-medium px-5 h-7 rounded-3xl"
+            }
+            
+            // Bonus color
+            const bonusAmount = document.getElementById("bonus-amount")
+            bonusAmount.textContent = `₹${bonus}`
+            if (bonus < 0) {
+                bonusAmount.classList.add("text-red-500")
+            } else {
+                bonusAmount.classList.remove("text-red-500")
+            }
+        }
+        
+        // Render expense log
+        function renderLog() {
+            const container = document.getElementById("expense-list")
+            container.innerHTML = ""
+            
+            if (expenses.length === 0) {
+                const empty = document.createElement("div")
+                empty.className = "flex flex-col items-center justify-center h-full py-12 text-zinc-300"
+                empty.innerHTML = `
+                    <i class="fa-solid fa-receipt text-6xl mb-6"></i>
+                    <div class="text-sm">No expenses yet</div>
+                `
+                container.appendChild(empty)
+                return
+            }
+            
+            let runningTotal = 0
+            
+            expenses.forEach((expense, index) => {
+                runningTotal += expense.amount
+                
+                const row = document.createElement("div")
+                row.className = `expense-item px-5 py-5 flex items-center justify-between rounded-3xl cursor-default ${index !== expenses.length - 1 ? 'mb-2' : ''}`
+                
+                row.innerHTML = `
+                    <div class="flex items-center gap-x-5">
+                        <div class="w-10 h-10 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-400 text-xs font-medium">${expense.time}</div>
+                        <div>
+                            <div class="font-medium">${expense.note ? expense.note : 'Miscellaneous'}</div>
+                            <div class="text-xs text-zinc-400">${expense.time}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-right">
+                        <div class="text-xl font-semibold text-red-500">−₹${expense.amount}</div>
+                        <div class="text-[10px] font-light text-zinc-400">₹${runningTotal}</div>
+                    </div>
+                `
+                container.append(row)
+            })
+            
+            // Update total spent
+            document.getElementById("total-spent-log").textContent = `₹${spent}`
+            document.getElementById("log-count").textContent = expenses.length
+        }
+        
+        // Render activity feed
+        function renderActivityFeed() {
+            const container = document.getElementById("activity-feed")
+            container.innerHTML = ""
+            
+            notifications.forEach(notif => {
+                const div = document.createElement("div")
+                div.className = "flex gap-4"
+                div.innerHTML = `
+                    <div class="text-3xl flex-shrink-0">${notif.icon}</div>
+                    <div class="flex-1">
+                        <div class="text-zinc-700">${notif.message}</div>
+                        <div class="text-xs text-zinc-400 mt-px">${notif.time}</div>
+                    </div>
+                `
+                container.appendChild(div)
+            })
+            
+            // Add a fake entry
+            if (notifications.length < 3) {
+                const last = document.createElement("div")
+                last.className = "flex gap-4 opacity-30"
+                last.innerHTML = `
+                    <div class="text-3xl flex-shrink-0">🚀</div>
+                    <div class="flex-1">
+                        <div class="text-zinc-700">Daily goal almost complete</div>
+                        <div class="text-xs text-zinc-400 mt-px">3h ago</div>
+                    </div>
+                `
+                container.appendChild(last)
+            }
+        }
+        
+        function addExpense(amount, note = "") {
+            if (amount <= 0) return
+            
+            const now = new Date()
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+            
+            expenses.unshift({
+                id: Date.now(),
+                time: timeStr,
+                amount: amount,
+                note: note
+            })
+            
+            // Calculate excess
+            const previousSpent = spent
+            spent += amount
+            
+            const previousRemaining = limit - previousSpent
+            
+            if (previousRemaining < amount && previousRemaining > 0) {
+                const excess = amount - previousRemaining
+                bonus = Math.max(bonus - excess, -200)
+            } else if (previousRemaining <= 0) {
+                bonus = Math.max(bonus - amount, -200)
+            }
+            
+            // Render
+            renderSummary()
+            renderLog()
+            
+            // Trigger notifications based on thresholds
+            triggerThresholdNotifications()
+            
+            // Update last updated
+            document.getElementById("last-updated").textContent = "just now"
+            
+            // Show toast
+            if (amount > 80) {
+                showToast(`Big spend! ₹${amount}`, "🔥")
+            } else {
+                showToast(`Expense added ₹${amount}`, "💸")
+            }
+            
+            // Refresh activity
+            if (Math.random() > 0.7) {
+                notifications.unshift({
+                    icon: "💸",
+                    message: `₹${amount} spent`,
+                    time: "just now"
+                })
+                
+                if (notifications.length > 4) notifications.pop()
+                renderActivityFeed()
+            }
+        }
+        
+        function quickAdd(val) {
+            // Add immediately
+            addExpense(val, "Quick add")
+        }
+        
+        function addCustomExpense() {
+            const input = document.getElementById("amount-input")
+            const noteInput = document.getElementById("note-input")
+            
+            const amount = parseFloat(input.value)
+            
+            if (!amount || amount <= 0) {
+                input.classList.add("!border-red-300")
+                setTimeout(() => {
+                    input.classList.remove("!border-red-300")
+                }, 900)
+                return
+            }
+            
+            addExpense(amount, noteInput.value)
+            
+            // Reset inputs
+            input.value = ""
+            noteInput.value = ""
+        }
+        
+        function triggerThresholdNotifications() {
+            const percent = Math.floor((spent / limit) * 100)
+            
+            if (percent >= 50 && percent < 75 && !milestones[50]) {
+                milestones[50] = true
+                showToast("Half your daily limit is used", "📍")
+                addActivityItem("📍", "Reached halfway point")
+            }
+            
+            if (percent >= 75 && percent < 90 && !milestones[75]) {
+                milestones[75] = true
+                showToast("75% of limit reached", "⚠️")
+                addActivityItem("⚠️", "75% limit warning")
+            }
+            
+            if (percent >= 90 && percent < 100 && !milestones[90]) {
+                milestones[90] = true
+                showToast("Almost out of daily budget", "🔴")
+                addActivityItem("🔴", "90% of daily limit used")
+            }
+            
+            if (percent >= 100 && !milestones[100]) {
+                milestones[100] = true
+                showToast("Daily limit crossed!", "🚨")
+                addActivityItem("🚨", "Limit exceeded")
+            }
+            
+            // Bonus warning
+            if (bonus < 0) {
+                showToast("Bonus balance is negative", "📉")
+            }
+        }
+        
+        function addActivityItem(icon, message) {
+            notifications.unshift({
+                icon: icon,
+                message: message,
+                time: "now"
+            })
+            
+            if (notifications.length > 5) {
+                notifications.pop()
+            }
+            
+            renderActivityFeed()
+        }
+        
+        function showToast(message, emoji = "📌") {
+            const container = document.getElementById("toast-container")
+            
+            const toast = document.createElement("div")
+            toast.className = `toast flex items-center gap-x-3 bg-white shadow-2xl border border-zinc-100 text-zinc-700 px-5 py-4 rounded-3xl min-w-[260px]`
+            
+            toast.innerHTML = `
+                <span class="text-3xl">${emoji}</span>
+                <div class="text-base">${message}</div>
+            `
+            
+            container.appendChild(toast)
+            
+            // Auto dismiss
+            setTimeout(() => {
+                toast.style.transitionDuration = "400ms"
+                toast.style.opacity = 0
+                toast.style.transform = "translateY(30px)"
+                
+                setTimeout(() => {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast)
+                }, 400)
+            }, 2600)
+        }
+        
+        function simulateDayEnd() {
+            if (spent < limit) {
+                const leftover = limit - spent
+                bonus += leftover
+                showToast(`+₹${leftover} added to bonus`, "🎉")
+            } else if (spent > limit) {
+                showToast("No bonus today", "😕")
+            }
+            
+            // Reset spent
+            spent = 0
+            expenses = []
+            
+            // Reset milestones
+            milestones = {
+                50: false,
+                75: false,
+                90: false,
+                100: false
+            }
+            
+            renderSummary()
+            renderLog()
+            renderActivityFeed()
+            
+            showToast("New day started. Limit reset.", "🌅")
+        }
+        
+        function clearAllExpenses() {
+            if (confirm("Clear all expenses for today?")) {
+                expenses = []
+                renderLog()
+                showToast("All expenses cleared", "🧹")
+            }
+        }
+        
+        function adjustBonus() {
+            const modal = document.getElementById("bonus-modal")
+            const input = document.getElementById("modal-bonus-input")
+            input.value = bonus
+            modal.style.display = "flex"
+            input.focus()
+            input.select()
+        }
+        
+        function saveBonus() {
+            const input = document.getElementById("modal-bonus-input")
+            let newBonus = parseFloat(input.value)
+            
+            if (!isNaN(newBonus)) {
+                bonus = Math.round(newBonus)
+                renderSummary()
+                showToast(`Bonus updated to ₹${bonus}`, "💎")
+            }
+            
+            closeBonusModal()
+        }
+        
+        function closeBonusModal() {
+            const modal = document.getElementById("bonus-modal")
+            modal.style.display = "none"
+        }
+        
+        function toggleNotifications() {
+            showToast("No new alerts", "🛎️")
+            // Could expand a real panel here in a larger app
+        }
+        
+        // Keyboard shortcuts
+        function handleKeys(e) {
+            if (e.metaKey && e.key === "k") {
+                e.preventDefault()
+                const input = document.getElementById("amount-input")
+                input.focus()
+            }
+        }
+        
+        // Initialize everything
+        function initialize() {
+            // Tailwind ready
+            initializeTailwind()
+            
+            // Set current date
+            const dateEl = document.getElementById("current-date")
+            const date = new Date()
+            const options = { weekday: 'short', month: 'short', day: 'numeric' }
+            dateEl.textContent = date.toLocaleDateString('en-US', options).toUpperCase()
+            
+            // Initial render
+            renderSummary()
+            renderLog()
+            renderActivityFeed()
+            
+            // Keyboard
+            document.addEventListener("keydown", handleKeys)
+            
+            // Demo toast on load
+            setTimeout(() => {
+                showToast("Welcome back 👋", "👋")
+            }, 1200)
+            
+            // Demo expense after some time
+            setTimeout(() => {
+                if (expenses.length < 5) {
+                    // No more demo adds
+                }
+            }, 4500)
+            
+            // Click anywhere on amount input to focus
+            const amountInput = document.getElementById("amount-input")
+            amountInput.addEventListener("click", function() {
+                this.focus()
+            })
+            
+            // Make quick buttons nicer
+            const quickBtns = document.querySelectorAll(".quick-btn")
+            quickBtns.forEach(btn => {
+                btn.addEventListener("mousedown", () => {
+                    btn.style.transform = "scale(0.9)"
+                })
+                btn.addEventListener("mouseup", () => {
+                    btn.style.transform = "scale(1)"
+                })
+            })
+            
+            // Show initial activated message
+            console.log('%c💰 Personal Money Tracker initialized', 'font-family:monospace;color:#10b981;font-size:10px')
+        }
+        
+        // Boot app
+        window.onload = initialize
+    </script>
+</body>
+</html>
